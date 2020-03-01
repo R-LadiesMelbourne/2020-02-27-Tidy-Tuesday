@@ -1,12 +1,433 @@
 ---
 title: "R-Ladies Melbourne Tidy Tuesday showcase"
 date: "27/02/2020"
-output: github_document
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+  github_document:
+    toc: true
+    toc_depth: 3
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
+```{r, include = F}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
-Below you can find the links to the GitHub repository created during the #TidyTuesday night by the R-Ladies Melbourne members!
+Below you can find some of the code created during the #TidyTuesday night by the R-Ladies Melbourne members across all level or R experience!
+
+
+# [Momeneh (Sepideh) Foroutan #TidyTuesday](https://twitter.com/S_Foroutan)
+
+Measles is a very contagious respiratory infection, and [this tidy tuesday data](https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-02-25/readme.md) has vaccination rates for 46,412 schools in 32 states in the US, inluding overall vaccination rate, Measles, Mumps, and Rubella (MMR) vaccination rate, as well percent of student who were exempted form the vaccination due to different reasons. 
+
+First we read in the data, and load the `tidyverse` library.
+
+```{r, warning = F,  message = F}
+measles <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-25/measles.csv')
+
+library(tidyverse)
+```
+
+
+# Explore the data
+
+Looking at the dimension, head, structure and summary of the data, gives us some insight about the datasets. Bases on these, we realise that there are -1 in the mmr and overall columns, which we may want to take this into account when visualising the data. You may also have noticed that one of the exemption columns is logical instead of numeric.
+This also help to see which columns have how many NAs.
+
+```{r}
+dim(measles)
+head(measles)
+str(measles)
+summary(measles)
+```
+
+We can also look at the tables of different columns. Looking at this, we see that the year column has some grouping issues, that you may want to change.
+```{r}
+selCols <- c("state", "year", "type")
+apply(measles[, selCols], 2, table )
+```
+
+Now, to do some visualisations, lets calculate the average of the vaccination rates and different expemtion columns. 
+
+```{r}
+mstat <- measles %>%
+  group_by(state) %>%
+  mutate(ave_xmed = mean(xmed, na.rm = T),
+         ave_xper = mean(xper, na.rm = T),
+         ave_xrel = mean(xrel, na.rm = T),
+         ave_enroll = mean(enroll, na.rm = T),
+         ave_mmr = mean(mmr, na.rm = T),
+         ave_overall = mean(overall, na.rm = T)) %>%
+  data.frame() 
+```
+
+# Visualisation
+## Barplot
+In order to make barplots for the vaccination rate columns, we make sure that we filter out -1 values from that column. As we have calculated the mean vaccination rate values per state, we remove duplicated rows too.
+Note that we can order the barplots, simply by using the `reorder()` function.
+```{r}
+mstat %>%  
+  filter(! duplicated(state) & ave_overall != -1) %>% 
+ggplot(., aes(x = reorder(state, ave_overall), y = ave_overall)) + 
+  geom_bar(stat = "identity", fill = "gray20") +
+  ggtitle("Average overall vaccination across states") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+mstat %>%  
+  filter(! duplicated(state) & ave_mmr != -1) %>% 
+ggplot(., aes(x = reorder(state, ave_mmr), y = ave_mmr)) + 
+  geom_bar(stat = "identity", fill = "gray60") +
+  ggtitle("Average MMR vaccination across states") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Now, if we want to know what percent exemption of different reasons we have in each state, we should first change the structure of the data to be in the long format, so that all teh info for different exemptions go into one column. For this, we use `pivot_longer()` function. The output of this can be directly used in the `ggplot()` function. Note that we also filter for NaN valuse in the new column "Average_values".
+```{r}
+mstat %>%
+  filter(!duplicated(state)) %>%
+  pivot_longer(.,
+               cols = ave_xmed:ave_xrel,
+               names_to = "Exemption",
+               values_to = "Average_values") %>%
+  filter(!is.nan(Average_values)) %>%
+  ggplot(., aes(
+    x = reorder(state, ave_mmr),
+    y = Average_values,
+    fill = Exemption
+  )) +
+  geom_bar(stat = "identity",
+           position = "dodge",
+           width = 0.8) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+## Scatterplot
+The other way of looking at the data is to examine associations. For example, there seems to be a positive correlation between overall vaccination rate and mmr, however, there are schools in some states, such as Colorado that have high mmr but generally lower overall vaccination rate.
+```{r}
+mstat %>%
+  filter(overall != -1 & mmr != -1) %>%
+  ggplot(., aes(x = mmr, y = overall, color = state)) +
+  geom_point(alpha = 0.6) +
+  theme_bw()
+```
+
+## Map 
+We can also examine this data in form of a map. There are several ways of doing this but here I am giving two simple examples to get started. These include using the `coord_quickmap()` function from ggplot2 and `plot_usmap()` function from usmap package.
+
+### coord_quickmap
+Here, we plot all lng and lat, and then because there seem to be some outliers in these data, we focus on only those lng and lat that properly covers the US coordinates. Then we show how to simply color that based on state.
+```{r}
+ggplot(mstat, aes(lng, lat)) + 
+  geom_point(size = .25, show.legend = FALSE) +
+  coord_quickmap()
+
+mstat %>% 
+  filter(lng < -60 ) %>% 
+ggplot(., aes(lng, lat)) + 
+  geom_point(size = .25, show.legend = FALSE) +
+  coord_quickmap()
+
+
+mstat %>% 
+  filter(lng < -60 ) %>% 
+ggplot(., aes(lng, lat, color = state)) + 
+  geom_point(size = .25, show.legend = FALSE) +
+  coord_quickmap()
+```
+
+We can also colour the points based on some continuous values, such as mmr or overall. To have a better contrast in the colour, I decided to keep -1 values, however, you can remove it and see what your plot looks like.
+```{r}
+mstat %>%
+  filter(lng < -60) %>%
+  # filter(mmr != -1) %>%
+  ggplot(., aes(lng, lat, color = mmr)) +
+  geom_point(size = .25, show.legend = TRUE) +
+  scale_color_viridis_c(name = "MMR", label = scales::comma) +
+  coord_quickmap() +
+  theme(legend.position = "right") +
+  theme_dark()
+
+mstat %>%
+  filter(lng < -60) %>%
+  # filter(overall != -1) %>%
+  ggplot(., aes(lng, lat, color = overall)) +
+  geom_point(size = .25, show.legend = TRUE) +
+  scale_color_viridis_c(name = "Overall", label = scales::comma) +
+  coord_quickmap() +
+  theme(legend.position = "right") +
+  theme_dark()
+
+```
+
+### Make it interactive
+Now, we subset the data to those that do not have -1 in overall column and color based on the mmr values. We can zoom on different states and make the plots inteactive using the plotly package and `ggplotly()` function. Uncomment `plotly::ggplotly(p, tiptools = "text")` in the below code in your computer to see the interactivity.
+```{r}
+p <- mstat %>%
+  filter(lng < -110) %>%
+  filter(overall != -1) %>%
+  ggplot(., aes(lng, lat, color = mmr, text = name)) +
+  geom_point(size = .25, show.legend = TRUE) +
+  scale_color_viridis_c(name = "MMR", label = scales::comma) +
+  coord_quickmap() +
+  theme(legend.position = "right") +
+  theme_dark()
+
+p
+# plotly::ggplotly(p, tiptools = "text")
+```
+
+### usmap
+As I mentioned above, we can also use usmap package to generate maps for the US. To do this, I have been looking at the post [here](https://cran.r-project.org/web/packages/usmap/vignettes/mapping.html); but there are obviously other relevant posts, such as [this](https://remiller1450.github.io/s230s19/Intro_maps.html) that shows how to generate maps using ggplot2, for example using `geom_polygon()` function.
+
+Note that as we do not have state abbreviations, we use state.name and state.abb from the usmap, merge these to our data and use `plot_usmap()` to visualise it.
+
+```{r}
+library(usmap)
+
+mstatUniqueState <- mstat[! duplicated(mstat$state), ]
+abbr_state <- tibble(state = state.name, abb = state.abb)
+  
+mstatUniqueState %>% 
+  filter(ave_mmr != -1) %>% 
+  left_join(abbr_state) %>% 
+plot_usmap(
+  data = .,
+  region = "state",
+  values = "ave_mmr",
+  color = "purple"
+) +
+  scale_fill_viridis_c(name = "MMR", label = scales::comma) +
+  theme(legend.position = "right") +
+  theme(panel.background = element_rect(color = "white", fill = "gray10"))
+
+mstatUniqueState %>% 
+  filter(ave_overall != -1) %>% 
+  left_join(abbr_state) %>% 
+plot_usmap(
+  data = .,
+  region = "state",
+  values = "ave_overall",
+  color = "purple"
+) +
+  scale_fill_viridis_c(name = "Overall", label = scales::comma) +
+  theme(legend.position = "right") +
+  theme(panel.background = element_rect(color = "white", fill = "gray10"))
+
+```
+
+## Session info
+
+```{r}
+sessionInfo()
+```
+
+
+
+## Some shots from the night
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Many different ways to visualise the <a href="https://twitter.com/hashtag/TidyTuesday?src=hash&amp;ref_src=twsrc%5Etfw">#TidyTuesday</a> measles vaccination dataset! <a href="https://twitter.com/hashtag/rstats?src=hash&amp;ref_src=twsrc%5Etfw">#rstats</a> <a href="https://twitter.com/S_Foroutan?ref_src=twsrc%5Etfw">@S_Foroutan</a> <a href="https://t.co/AIKXAFuwpx">pic.twitter.com/AIKXAFuwpx</a></p>&mdash; R-Ladies Melbourne (@RLadiesMelb) <a href="https://twitter.com/RLadiesMelb/status/1232944114741596161?ref_src=twsrc%5Etfw">February 27, 2020</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">The usmap <a href="https://twitter.com/hashtag/rstats?src=hash&amp;ref_src=twsrc%5Etfw">#rstats</a> package has some useful data and functions for plotting US data. Combine with <a href="https://twitter.com/hashtag/plotly?src=hash&amp;ref_src=twsrc%5Etfw">#plotly</a> for interactive graphics.<a href="https://twitter.com/hashtag/TidyTuesday?src=hash&amp;ref_src=twsrc%5Etfw">#TidyTuesday</a> <a href="https://twitter.com/S_Foroutan?ref_src=twsrc%5Etfw">@S_Foroutan</a> <a href="https://t.co/ER5sLBdD3H">pic.twitter.com/ER5sLBdD3H</a></p>&mdash; R-Ladies Melbourne (@RLadiesMelb) <a href="https://twitter.com/RLadiesMelb/status/1232943683105742848?ref_src=twsrc%5Etfw">February 27, 2020</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+
+
+
+<div class="tocify-extend-page" data-unique="tocify-extend-page" style="height: 598px;"></div>
+
+
+# [Nyssa Silbiger #TidyTuesday](https://github.com/ekatian/tidytuesday/blob/master/working_file.R)
+
+
+```{r eval=FALSE}
+if (!require('tidyverse')) install.packages('tidyverse')
+if (!require('geofacet')) install.packages('geofacet')
+if (!require('ggtext')) install.packages('ggtext')
+if (!require('hrbrthemes')) install.packages('hrbrthemes')
+if (!require('extrafont')) install.packages('extrafont')
+```
+
+
+```{r}
+#load libraries
+library(tidyverse)
+library(geofacet)
+library(ggtext)
+library(hrbrthemes)
+library(extrafont)
+library(skimr)
+
+help(package = "tidyverse")
+```
+
+```{r message=FALSE}
+# Download the data
+measles <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-25/measles.csv')
+```
+
+
+```{r}
+d <- read.csv(extrafont:::fonttable_file(), stringsAsFactors = FALSE)
+d[grepl("Light", d$FontName), ]$FamilyName <- font_rc_light  # "Roboto Condensed Light"
+write.csv(d, extrafont:::fonttable_file(), row.names = FALSE)
+
+extrafont::loadfonts()
+```
+
+
+```{r }
+skimr::skim(measles)
+summary(measles)
+```
+
+
+```{r }
+## get percentage of students that did not get the mmr shot for religious, medical, or personal reasons accross all states
+measles_df <- measles %>%
+  filter(mmr >0) %>% #removed schools with no reported value (-1)
+  mutate(xrel = as.numeric(xrel))%>% # it is showing up as a logical instead of a value
+  replace_na(list(xmed = 0, xrel = 0, xper = 0, enroll = 0, overall = 0, mmr = 0)) %>% # replace all NA with 0
+  dplyr::select(-lat, -lng, -index, -enroll, -overall) %>% #remove lat and long
+  pivot_longer(cols = xrel:xper, names_to = "Reason", values_to = "percentage") %>% # have all the reasons together for the barplot below
+  group_by(state, Reason) %>%
+  summarise_if(is.numeric, list(~mean(.), ~sd(.)/sqrt(n()))) %>% # get means and SE
+  rename(SE = `percentage_/`)
+```
+
+```{r }
+glimpse(measles_df)
+# rename the SE column
+ggplot(measles_df,aes(x = Reason, y = percentage_mean, color = Reason, fill = Reason))+
+  geom_bar(stat = 'identity')+
+  geom_errorbar(aes(ymin = percentage_mean - SE, ymax = percentage_mean+SE), color = "white", width = 0)+
+ # theme_ft_rc() + # black background theme
+  labs(caption = "Plot by N. Silbiger \n@nsilbiger \nData by the Wallstreet Journal")+
+  theme(axis.title.x=element_blank(),  # remove xlabels
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        #plot.title = element_markdown(lineheight = 1.1)
+        
+        legend.position = "none")+
+  xlab("")+ylab("")+
+  labs(title = "Mean prcentage of students that refused vaccines due to  medical , personal , or  religious")+
+  facet_geo(~ state) # facet wrap it by state
+```
+
+
+```{r }
+measles_df2 <- measles %>%
+  filter(mmr >0) %>% #removed schools with no reported value (-1)
+  mutate(xrel = as.numeric(xrel))%>% # it is showing up as a logical instead of a value
+  replace_na(list(xmed = 0, xrel = 0, xper = 0, enroll = 0, overall = 0, mmr = 0)) # replace all NA with 0
+glimpse(measles_df2)
+ggplot(measles_df2,aes(x = enroll, y = mmr, colour = state, fill = state))+
+  geom_point( )
+```
+
+
+```{r }
+measles_df3 <- measles %>%
+  filter(mmr >0) %>% #removed schools with no reported value (-1)
+  mutate(xrel = as.numeric(xrel))%>% # it is showing up as a logical instead of a value
+  replace_na(list(xmed = 0, xrel = 0, xper = 0, enroll = 0, overall = 0, mmr = 0)) %>%# replace all NA with 0
+  group_by(type,state) %>% # group for visualisation
+  summarise(enrollments = sum(enroll), avg_mmr = mean(mmr) ) %>%
+  filter(type %in% list('Private','Public'))
+```
+
+
+
+```{r }
+glimpse(measles_df3)
+ggplot(measles_df3,aes(x = enrollments, y = avg_mmr, colour = state, fill = state, label=state))+
+  geom_point( ) +
+  geom_text(angle = 45)
+ggplot(measles_df3,aes(x = type, y = avg_mmr, colour = state, fill = state, label=state))+
+  geom_bar(position = "dodge", stat="identity" ) #+
+#    geom_text(angle = 45)
+```
+
+
+# [Eka Tian #TidyTuesday](https://github.com/ekatian/tidytuesday/blob/master/privatepublicmmr.R)
+
+```{r eval=FALSE}
+# By Eka Tian
+# 28/Feb/2020
+if (!require('tidyverse')) install.packages('tidyverse')
+if (!require('geofacet')) install.packages('geofacet')
+if (!require('ggtext')) install.packages('ggtext')
+if (!require('hrbrthemes')) install.packages('hrbrthemes') 
+if (!require('extrafont')) install.packages('extrafont')
+devtools::install_github("wilkelab/ggtext")
+```
+
+
+```{r }
+#load libraries
+library(tidyverse)
+library(geofacet)
+library(hrbrthemes)
+library(extrafont)
+library(skimr)
+library(dplyr)
+library(ggtext)
+```
+
+
+```{r }
+# Download the data
+measles <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-25/measles.csv')
+```
+
+```{r }
+measles_df3 <- measles %>%
+  filter(mmr >0) %>% #removed schools with no reported value (-1)
+  mutate(xrel = as.numeric(xrel))%>% # it is showing up as a logical instead of a value
+  replace_na(list(xmed = 0, xrel = 0, xper = 0, enroll = 0, overall = 0, mmr = 0)) %>%# replace all NA with 0
+  group_by(type,state) %>% # group for visualisation
+  summarise(enrollments = sum(enroll), avg_mmr = mean(mmr) ) %>%
+  filter(type %in% list('Private','Public'))
+```
+
+```{r bar-chart private vs public}
+glimpse(measles_df3)
+ggplot(measles_df3,aes(x = type, y = avg_mmr, colour = state, fill = state, label=state))+
+  geom_bar(position = "dodge", stat="identity" ) 
+```
+
+
+
+# More insights from the night!
+
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Getting into the measles vaccination data at our <a href="https://twitter.com/hashtag/TidyTuesday?src=hash&amp;ref_src=twsrc%5Etfw">#TidyTuesday</a> working session! <a href="https://t.co/aolod0xTRb">pic.twitter.com/aolod0xTRb</a></p>&mdash; R-Ladies Melbourne (@RLadiesMelb) <a href="https://twitter.com/RLadiesMelb/status/1232935158614900736?ref_src=twsrc%5Etfw">February 27, 2020</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Average measles vaccination rate is highest for Arizona and New York <a href="https://twitter.com/hashtag/TidyTuesday?src=hash&amp;ref_src=twsrc%5Etfw">#TidyTuesday</a> <a href="https://t.co/Cwpt1RBqDD">pic.twitter.com/Cwpt1RBqDD</a></p>&mdash; R-Ladies Melbourne (@RLadiesMelb) <a href="https://twitter.com/RLadiesMelb/status/1232940104156532736?ref_src=twsrc%5Etfw">February 27, 2020</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Exemptions from measles vaccinations for medicine, personal or religion reasons drop off with the size of the school<a href="https://twitter.com/hashtag/TidyTuesday?src=hash&amp;ref_src=twsrc%5Etfw">#TidyTuesday</a> <a href="https://t.co/0x6EXkQIeV">pic.twitter.com/0x6EXkQIeV</a></p>&mdash; R-Ladies Melbourne (@RLadiesMelb) <a href="https://twitter.com/RLadiesMelb/status/1232939770348589057?ref_src=twsrc%5Etfw">February 27, 2020</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Public sector has higher vaccination rates <a href="https://twitter.com/hashtag/TidyTuesday?src=hash&amp;ref_src=twsrc%5Etfw">#TidyTuesday</a><br>Are the wealthy more likely to opt out of vaccinations? 🤔 <a href="https://t.co/cj1V4c7ylB">pic.twitter.com/cj1V4c7ylB</a></p>&mdash; R-Ladies Melbourne (@RLadiesMelb) <a href="https://twitter.com/RLadiesMelb/status/1232939389883338752?ref_src=twsrc%5Etfw">February 27, 2020</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">California has the highest rate of MMR vaccinations. Insights from <a href="https://twitter.com/hashtag/TidyTuesday?src=hash&amp;ref_src=twsrc%5Etfw">#TidyTuesday</a> data <a href="https://t.co/GaYVfQ2XFB">pic.twitter.com/GaYVfQ2XFB</a></p>&mdash; R-Ladies Melbourne (@RLadiesMelb) <a href="https://twitter.com/RLadiesMelb/status/1232938980405985280?ref_src=twsrc%5Etfw">February 27, 2020</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Interested in rates of measles, mumps and rubella vaccinations? We&#39;re learning all about them with the <a href="https://twitter.com/hashtag/TidyTuesday?src=hash&amp;ref_src=twsrc%5Etfw">#TidyTuesday</a> dataset<a href="https://twitter.com/annaquagli?ref_src=twsrc%5Etfw">@annaquagli</a> <a href="https://t.co/IQSLlbfMqq">pic.twitter.com/IQSLlbfMqq</a></p>&mdash; R-Ladies Melbourne (@RLadiesMelb) <a href="https://twitter.com/RLadiesMelb/status/1232938368058609664?ref_src=twsrc%5Etfw">February 27, 2020</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+
 
