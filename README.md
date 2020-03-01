@@ -1,6 +1,5 @@
-R-Ladies Melbourne Tidy Tuesday showcase
+README
 ================
-27/02/2020
 
-Below you can find the links to the GitHub repository created during the
-\#TidyTuesday night by the R-Ladies Melbourne members\!
+Have a look at the awesome work that came out of a collaborative night
+with the R-Ladies Melbounrne members digging in the Measles dataset.
