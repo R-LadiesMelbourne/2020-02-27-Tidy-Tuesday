@@ -1,15 +1,9 @@
 ---
-title: "R-Ladies Melbourne Tidy Tuesday showcase"
-date: "27/02/2020"
-output: 
-  html_document:
-    toc: true
-    toc_depth: 3
-  github_document:
-    toc: true
-    toc_depth: 3
+title: "README"
+output: github_document
 ---
 
+<<<<<<< HEAD
 
 ```{r, include = F}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
@@ -420,3 +414,11 @@ ggplot(measles_df3,aes(x = type, y = avg_mmr, colour = state, fill = state, labe
 
 
 <div class="tocify-extend-page" data-unique="tocify-extend-page" style="height: 598px;"></div>
+=======
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Have a look at the awesome work https://r-ladiesmelbourne.github.io/2020-02-27-Tidy-Tuesday/ that came out of a collaborative night with the R-Ladies Melbounrne members digging in the Measles dataset.  
+>>>>>>> c0a2c8b735a0c759661d76b2106aba446b508674
