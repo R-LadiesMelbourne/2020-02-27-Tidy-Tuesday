@@ -23,7 +23,6 @@ Below you can find some of the code created during the #TidyTuesday night by the
 Measles is a very contagious respiratory infection, and [this tidy tuesday data](https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-02-25/readme.md) has vaccination rates for 46,412 schools in 32 states in the US, inluding overall vaccination rate, Measles, Mumps, and Rubella (MMR) vaccination rate, as well percent of student who were exempted form the vaccination due to different reasons. 
 
 First we read in the data, and load the `tidyverse` library.
-
 ```{r, warning = F,  message = F}
 measles <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-02-25/measles.csv')
 
@@ -32,10 +31,8 @@ library(tidyverse)
 
 
 # Explore the data
-
 Looking at the dimension, head, structure and summary of the data, gives us some insight about the datasets. Bases on these, we realise that there are -1 in the mmr and overall columns, which we may want to take this into account when visualising the data. You may also have noticed that one of the exemption columns is logical instead of numeric.
 This also help to see which columns have how many NAs.
-
 ```{r}
 dim(measles)
 head(measles)
@@ -49,55 +46,51 @@ selCols <- c("state", "year", "type")
 apply(measles[, selCols], 2, table )
 ```
 
-Now, to do some visualisations, lets calculate the average of the vaccination rates and different expemtion columns. 
-
-```{r}
-mstat <- measles %>%
-  group_by(state) %>%
-  mutate(ave_xmed = mean(xmed, na.rm = T),
-         ave_xper = mean(xper, na.rm = T),
-         ave_xrel = mean(xrel, na.rm = T),
-         ave_enroll = mean(enroll, na.rm = T),
-         ave_mmr = mean(mmr, na.rm = T),
-         ave_overall = mean(overall, na.rm = T)) %>%
-  data.frame() 
-```
 
 # Visualisation
+Now, to do some visualisations in the below steps, we calculate the average of the vaccination rates and different expemtion columns and generate new columns storing these values. Note that we use `group_by()` and `summarise()` functions to calculate mean values for each state for these variables; this would drop rows after mean calculations on each group.
+
 ## Barplot
-In order to make barplots for the vaccination rate columns, we make sure that we filter out -1 values from that column. As we have calculated the mean vaccination rate values per state, we remove duplicated rows too.
-Note that we can order the barplots, simply by using the `reorder()` function.
+In order to make barplots for the vaccination rate columns, we make sure that we filter out -1 values from that column. Note that we can order the barplots, simply by using the `reorder()` function.
 ```{r}
-mstat %>%  
-  filter(! duplicated(state) & ave_overall != -1) %>% 
+measles %>%
+  group_by(state) %>%
+  summarise(ave_overall = mean(overall, na.rm = T)) %>% 
+  filter(ave_overall != -1) %>% 
 ggplot(., aes(x = reorder(state, ave_overall), y = ave_overall)) + 
   geom_bar(stat = "identity", fill = "gray20") +
   ggtitle("Average overall vaccination across states") +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
 
-```{r}
-mstat %>%  
-  filter(! duplicated(state) & ave_mmr != -1) %>% 
+measles %>%
+  group_by(state) %>%
+  summarise(ave_mmr = mean(overall, na.rm = T)) %>% 
+  filter(ave_mmr != -1) %>% 
 ggplot(., aes(x = reorder(state, ave_mmr), y = ave_mmr)) + 
-  geom_bar(stat = "identity", fill = "gray60") +
+  geom_bar(stat = "identity", fill = "gray20") +
   ggtitle("Average MMR vaccination across states") +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+
 ```
 
-Now, if we want to know what percent exemption of different reasons we have in each state, we should first change the structure of the data to be in the long format, so that all teh info for different exemptions go into one column. For this, we use `pivot_longer()` function. The output of this can be directly used in the `ggplot()` function. Note that we also filter for NaN valuse in the new column "Average_values".
+Now, if we want to know what percent exemptions we have in each state, we first calculate the average of percent exemptions and then, change the structure of the data to be in the long format; this puts all the info for different exemptions into one column. To do this this, we use `pivot_longer()` function. The output of this can be directly used in the `ggplot()` function. Note that we also filter for NaN valuse in the new column "Average_values".
 ```{r}
-mstat %>%
-  filter(!duplicated(state)) %>%
+measles %>%
+  group_by(state) %>%
+  mutate(
+    ave_xmed = mean(xmed, na.rm = T),
+    ave_xper = mean(xper, na.rm = T),
+    ave_xrel = mean(xrel, na.rm = T)
+  ) %>%
   pivot_longer(.,
                cols = ave_xmed:ave_xrel,
                names_to = "Exemption",
                values_to = "Average_values") %>%
   filter(!is.nan(Average_values)) %>%
   ggplot(., aes(
-    x = reorder(state, ave_mmr),
+    x = state,
     y = Average_values,
     fill = Exemption
   )) +
@@ -106,13 +99,14 @@ mstat %>%
            width = 0.8) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 ```
 
 
 ## Scatterplot
 The other way of looking at the data is to examine associations. For example, there seems to be a positive correlation between overall vaccination rate and mmr, however, there are schools in some states, such as Colorado that have high mmr but generally lower overall vaccination rate.
 ```{r}
-mstat %>%
+measles %>%
   filter(overall != -1 & mmr != -1) %>%
   ggplot(., aes(x = mmr, y = overall, color = state)) +
   geom_point(alpha = 0.6) +
@@ -123,29 +117,29 @@ mstat %>%
 We can also examine this data in form of a map. There are several ways of doing this but here I am giving two simple examples to get started. These include using the `coord_quickmap()` function from ggplot2 and `plot_usmap()` function from usmap package.
 
 ### coord_quickmap
-Here, we plot all lng and lat, and then because there seem to be some outliers in these data, we focus on only those lng and lat that properly covers the US coordinates. Then we show how to simply color that based on state.
+Here, we plot all lng and lat, and then because there seem to be some outliers in these data, we focus on only those lng and lat that properly covers the US coordinates. Then we show how to simply color that based on the state column.
 ```{r}
-ggplot(mstat, aes(lng, lat)) + 
+ggplot(measles, aes(lng, lat)) + 
   geom_point(size = .25, show.legend = FALSE) +
   coord_quickmap()
 
-mstat %>% 
+measles %>% 
   filter(lng < -60 ) %>% 
 ggplot(., aes(lng, lat)) + 
   geom_point(size = .25, show.legend = FALSE) +
   coord_quickmap()
 
 
-mstat %>% 
+measles %>% 
   filter(lng < -60 ) %>% 
 ggplot(., aes(lng, lat, color = state)) + 
   geom_point(size = .25, show.legend = FALSE) +
   coord_quickmap()
 ```
 
-We can also colour the points based on some continuous values, such as mmr or overall. To have a better contrast in the colour, I decided to keep -1 values, however, you can remove it and see what your plot looks like.
+We can also colour the points based on some continuous values, such as mmr or overall. To have a better contrast in the colour, I decided to keep -1 values, however, you can remove them (by uncommenting the commonted line) and see how your plots looks like.
 ```{r}
-mstat %>%
+measles %>%
   filter(lng < -60) %>%
   # filter(mmr != -1) %>%
   ggplot(., aes(lng, lat, color = mmr)) +
@@ -155,7 +149,7 @@ mstat %>%
   theme(legend.position = "right") +
   theme_dark()
 
-mstat %>%
+measles %>%
   filter(lng < -60) %>%
   # filter(overall != -1) %>%
   ggplot(., aes(lng, lat, color = overall)) +
@@ -168,9 +162,9 @@ mstat %>%
 ```
 
 ### Make it interactive
-Now, we subset the data to those that do not have -1 in overall column and color based on the mmr values. We can zoom on different states and make the plots inteactive using the plotly package and `ggplotly()` function. Uncomment `plotly::ggplotly(p, tiptools = "text")` in the below code in your computer to see the interactivity.
+Now, we subset the data to those that do not have -1 in overall column and color based on the mmr values. We can zoom on different states and make the plots inteactive using the plotly package and `ggplotly()` function. Uncomment `plotly::ggplotly(p, tiptools = "text")` in the below code in your script to see the interactivity.
 ```{r}
-p <- mstat %>%
+p <- measles %>%
   filter(lng < -110) %>%
   filter(overall != -1) %>%
   ggplot(., aes(lng, lat, color = mmr, text = name)) +
@@ -192,58 +186,53 @@ Note that as we do not have state abbreviations, we use state.name and state.abb
 ```{r}
 library(usmap)
 
-mstatUniqueState <- mstat[! duplicated(mstat$state), ]
 abbr_state <- tibble(state = state.name, abb = state.abb)
-  
-mstatUniqueState %>% 
-  filter(ave_mmr != -1) %>% 
-  left_join(abbr_state) %>% 
-plot_usmap(
-  data = .,
-  region = "state",
-  values = "ave_mmr",
-  color = "purple"
-) +
+
+measles %>%
+  group_by(state) %>%
+  summarise(ave_mmr = mean(mmr, na.rm = T)) %>%
+  filter(ave_mmr != -1) %>%
+  left_join(abbr_state) %>%
+  plot_usmap(
+    data = .,
+    region = "state",
+    values = "ave_mmr",
+    color = "purple"
+  ) +
   scale_fill_viridis_c(name = "MMR", label = scales::comma) +
   theme(legend.position = "right") +
   theme(panel.background = element_rect(color = "white", fill = "gray10"))
 
-mstatUniqueState %>% 
-  filter(ave_overall != -1) %>% 
-  left_join(abbr_state) %>% 
-plot_usmap(
-  data = .,
-  region = "state",
-  values = "ave_overall",
-  color = "purple"
-) +
+measles %>%
+  group_by(state) %>%
+  summarise(ave_overall = mean(overall, na.rm = T)) %>%
+  filter(ave_overall != -1) %>%
+  left_join(abbr_state) %>%
+  plot_usmap(
+    data = .,
+    region = "state",
+    values = "ave_overall",
+    color = "purple"
+  ) +
   scale_fill_viridis_c(name = "Overall", label = scales::comma) +
   theme(legend.position = "right") +
   theme(panel.background = element_rect(color = "white", fill = "gray10"))
-
 ```
 
-## Session info
-
+# Session info
 ```{r}
 sessionInfo()
 ```
 
 
 
-## Some shots from the night
+# Some shots from the night
 
 <blockquote class="twitter-tweet"><p lang="en" dir="ltr">Many different ways to visualise the <a href="https://twitter.com/hashtag/TidyTuesday?src=hash&amp;ref_src=twsrc%5Etfw">#TidyTuesday</a> measles vaccination dataset! <a href="https://twitter.com/hashtag/rstats?src=hash&amp;ref_src=twsrc%5Etfw">#rstats</a> <a href="https://twitter.com/S_Foroutan?ref_src=twsrc%5Etfw">@S_Foroutan</a> <a href="https://t.co/AIKXAFuwpx">pic.twitter.com/AIKXAFuwpx</a></p>&mdash; R-Ladies Melbourne (@RLadiesMelb) <a href="https://twitter.com/RLadiesMelb/status/1232944114741596161?ref_src=twsrc%5Etfw">February 27, 2020</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 
 
 <blockquote class="twitter-tweet"><p lang="en" dir="ltr">The usmap <a href="https://twitter.com/hashtag/rstats?src=hash&amp;ref_src=twsrc%5Etfw">#rstats</a> package has some useful data and functions for plotting US data. Combine with <a href="https://twitter.com/hashtag/plotly?src=hash&amp;ref_src=twsrc%5Etfw">#plotly</a> for interactive graphics.<a href="https://twitter.com/hashtag/TidyTuesday?src=hash&amp;ref_src=twsrc%5Etfw">#TidyTuesday</a> <a href="https://twitter.com/S_Foroutan?ref_src=twsrc%5Etfw">@S_Foroutan</a> <a href="https://t.co/ER5sLBdD3H">pic.twitter.com/ER5sLBdD3H</a></p>&mdash; R-Ladies Melbourne (@RLadiesMelb) <a href="https://twitter.com/RLadiesMelb/status/1232943683105742848?ref_src=twsrc%5Etfw">February 27, 2020</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-
-
-
-
-
-<div class="tocify-extend-page" data-unique="tocify-extend-page" style="height: 598px;"></div>
 
 
 # [Nyssa Silbiger #TidyTuesday](https://github.com/ekatian/tidytuesday/blob/master/working_file.R)
@@ -430,4 +419,4 @@ ggplot(measles_df3,aes(x = type, y = avg_mmr, colour = state, fill = state, labe
 
 
 
-
+<div class="tocify-extend-page" data-unique="tocify-extend-page" style="height: 598px;"></div>

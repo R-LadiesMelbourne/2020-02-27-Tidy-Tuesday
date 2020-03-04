@@ -1,7 +1,3 @@
-Tidy Tuesday at R-Ladies Melbourne Inc: data wrangling and visualisation of the measles vaccination rate in the US
-===============
-Momeneh (Sepideh) Foroutan (27th of Feb 2020)
----------------------------------
 -   [Explore the data](#explore-the-data)
 -   [Visualisation](#visualisation)
     -   [Barplot](#barplot)
@@ -436,12 +432,12 @@ Session info
 sessionInfo()
 ```
 
-    ## R version 3.6.1 (2019-07-05)
+    ## R version 3.6.2 (2019-12-12)
     ## Platform: x86_64-apple-darwin15.6.0 (64-bit)
-    ## Running under: macOS Catalina 10.15.1
+    ## Running under: macOS Mojave 10.14.6
     ## 
     ## Matrix products: default
-    ## BLAS:   /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRblas.0.dylib
+    ## BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib
     ## LAPACK: /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRlapack.dylib
     ## 
     ## locale:
@@ -456,17 +452,17 @@ sessionInfo()
     ##  [9] ggplot2_3.2.1   tidyverse_1.3.0
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] tidyselect_1.0.0  xfun_0.12         haven_2.2.0       lattice_0.20-38  
-    ##  [5] colorspace_1.4-1  vctrs_0.2.2       generics_0.0.2    viridisLite_0.3.0
+    ##  [1] tidyselect_1.0.0  xfun_0.12         haven_2.2.0       lattice_0.20-40  
+    ##  [5] colorspace_1.4-1  vctrs_0.2.3       generics_0.0.2    viridisLite_0.3.0
     ##  [9] htmltools_0.4.0   yaml_2.2.1        utf8_1.1.4        rlang_0.4.4      
     ## [13] pillar_1.4.3      withr_2.1.2       glue_1.3.1        DBI_1.1.0        
-    ## [17] dbplyr_1.4.2      modelr_0.1.5      readxl_1.3.1      lifecycle_0.1.0  
+    ## [17] dbplyr_1.4.2      modelr_0.1.6      readxl_1.3.1      lifecycle_0.1.0  
     ## [21] munsell_0.5.0     gtable_0.3.0      cellranger_1.1.0  rvest_0.3.5      
     ## [25] evaluate_0.14     labeling_0.3      knitr_1.28        curl_4.3         
-    ## [29] fansi_0.4.1       broom_0.5.4       Rcpp_1.0.3        backports_1.1.5  
+    ## [29] fansi_0.4.1       broom_0.5.5       Rcpp_1.0.3        backports_1.1.5  
     ## [33] scales_1.1.0      jsonlite_1.6.1    farver_2.0.3      fs_1.3.1         
-    ## [37] hms_0.5.3         digest_0.6.23     stringi_1.4.5     grid_3.6.1       
-    ## [41] cli_2.0.1         tools_3.6.1       magrittr_1.5      lazyeval_0.2.2   
+    ## [37] hms_0.5.3         digest_0.6.25     stringi_1.4.6     grid_3.6.2       
+    ## [41] cli_2.0.2         tools_3.6.2       magrittr_1.5      lazyeval_0.2.2   
     ## [45] crayon_1.3.4      pkgconfig_2.0.3   xml2_1.2.2        reprex_0.3.0     
     ## [49] lubridate_1.7.4   assertthat_0.2.1  rmarkdown_2.1     httr_1.4.1       
-    ## [53] rstudioapi_0.11   R6_2.4.1          nlme_3.1-144      compiler_3.6.1
+    ## [53] rstudioapi_0.11   R6_2.4.1          nlme_3.1-144      compiler_3.6.2
