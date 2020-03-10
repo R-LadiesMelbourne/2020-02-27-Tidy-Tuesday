@@ -219,10 +219,10 @@ apply(measles[, selCols], 2, table )
 ```
 
 
-# Visualisation
+## Visualisation
 Now, to do some visualisations in the below steps, we calculate the average of the vaccination rates and different expemtion columns and generate new columns storing these values. Note that we use `group_by()` and `summarise()` functions to calculate mean values for each state for these variables; this would drop rows after mean calculations on each group.
 
-## Barplot
+### Barplot
 In order to make barplots for the vaccination rate columns, we make sure that we filter out -1 values from that column. Note that we can order the barplots, simply by using the `reorder()` function.
 ```{r}
 measles %>%
@@ -275,7 +275,7 @@ measles %>%
 ```
 
 
-## Scatterplot
+### Scatterplot
 The other way of looking at the data is to examine associations. For example, there seems to be a positive correlation between overall vaccination rate and mmr, however, there are schools in some states, such as Colorado that have high mmr but generally lower overall vaccination rate.
 ```{r}
 measles %>%
@@ -285,10 +285,10 @@ measles %>%
   theme_bw()
 ```
 
-## Map 
+### Map 
 We can also examine this data in form of a map. There are several ways of doing this but here I am giving two simple examples to get started. These include using the `coord_quickmap()` function from ggplot2 and `plot_usmap()` function from usmap package.
 
-### coord_quickmap
+#### coord_quickmap
 Here, we plot all lng and lat, and then because there seem to be some outliers in these data, we focus on only those lng and lat that properly covers the US coordinates. Then we show how to simply color that based on the state column.
 ```{r}
 ggplot(measles, aes(lng, lat)) + 
@@ -333,7 +333,7 @@ measles %>%
 
 ```
 
-### Make it interactive
+#### Make it interactive
 Now, we subset the data to those that do not have -1 in overall column and color based on the mmr values. We can zoom on different states and make the plots inteactive using the plotly package and `ggplotly()` function. Uncomment `plotly::ggplotly(p, tiptools = "text")` in the below code in your script to see the interactivity.
 ```{r}
 p <- measles %>%
@@ -350,7 +350,7 @@ p
 # plotly::ggplotly(p, tiptools = "text")
 ```
 
-### usmap
+#### usmap
 As I mentioned above, we can also use usmap package to generate maps for the US. To do this, I have been looking at the post [here](https://cran.r-project.org/web/packages/usmap/vignettes/mapping.html); but there are obviously other relevant posts, such as [this](https://remiller1450.github.io/s230s19/Intro_maps.html) that shows how to generate maps using ggplot2, for example using `geom_polygon()` function.
 
 Note that as we do not have state abbreviations, we use state.name and state.abb from the usmap, merge these to our data and use `plot_usmap()` to visualise it.
@@ -391,14 +391,13 @@ measles %>%
   theme(panel.background = element_rect(color = "white", fill = "gray10"))
 ```
 
-# Session info
+## Session info
 ```{r}
 sessionInfo()
 ```
 
 
 <div class="tocify-extend-page" data-unique="tocify-extend-page" style="height: 598px;"></div>
-
 
 
 # More insights from the night!
