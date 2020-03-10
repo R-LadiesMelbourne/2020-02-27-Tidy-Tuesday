@@ -202,7 +202,7 @@ library(tidyverse)
 ```
 
 
-# Explore the data
+## Explore the data
 Looking at the dimension, head, structure and summary of the data, gives us some insight about the datasets. Bases on these, we realise that there are -1 in the mmr and overall columns, which we may want to take this into account when visualising the data. You may also have noticed that one of the exemption columns is logical instead of numeric.
 This also help to see which columns have how many NAs.
 ```{r}
